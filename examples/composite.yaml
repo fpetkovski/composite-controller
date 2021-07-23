@@ -1,0 +1,7 @@
+apiVersion: fpetkovski.io/v1alpha1
+kind: Composite
+metadata:
+  name: pod-service
+  namespace: default
+spec:
+  image: nginx
