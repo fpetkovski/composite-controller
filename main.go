@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/fpetkovski/composite-controller/pkg/hook"
 	"log"
+
+	"github.com/fpetkovski/composite-controller/pkg/hook"
 
 	"github.com/fpetkovski/composite-controller/pkg/operator"
 	"k8s.io/klog/v2/klogr"

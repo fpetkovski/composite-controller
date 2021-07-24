@@ -54,7 +54,7 @@ func New(cfg *rest.Config, logger logr.Logger, mapper CompositeMapper) (manager.
 
 	enqueueForOwnerHandler := handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType: &v1alpha1.Composite{},
+		OwnerType:    &v1alpha1.Composite{},
 	}
 	for _, t := range mapper.GetTypes() {
 		if err := ctrl.Watch(&source.Kind{Type: t}, &enqueueForOwnerHandler); err != nil {

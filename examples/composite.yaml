@@ -1,7 +1,7 @@
 apiVersion: fpetkovski.io/v1alpha1
 kind: Composite
 metadata:
-  name: pod-service
+  name: microservice
   namespace: default
 spec:
 #  image: yeasy/simple-web
