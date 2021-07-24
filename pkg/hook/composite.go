@@ -1,18 +1,67 @@
 package hook
 
 import (
+	"fmt"
+
 	"github.com/fpetkovski/composite-controller/pkg/apis/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func GetChildren(composite v1alpha1.Composite) []client.Object {
-	appLabels := map[string]string{
+type Mapper struct {
+}
+
+func (m Mapper) GetTypes() []client.Object {
+	return []client.Object{
+		&v1.Service{},
+		&appsv1.Deployment{},
+		&networkingv1.Ingress{},
+	}
+}
+
+func (m Mapper) GetComponents(composite v1alpha1.Composite) []client.Object {
+	ingressPathType := networkingv1.PathTypePrefix
+	portName := "web"
+	podLabels := map[string]string{
 		"app": composite.GetName(),
 	}
+
 	return []client.Object{
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      composite.GetName(),
+				Namespace: composite.GetNamespace(),
+				Annotations: map[string]string{
+					"kubectl.kubernetes.io/default-container": "main",
+				},
+			},
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "apps/v1",
+				Kind:       "Deployment",
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: podLabels,
+				},
+				Template: v1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: podLabels,
+					},
+					Spec: v1.PodSpec{
+						Containers: []v1.Container{
+							{
+								Name:  "main",
+								Image: composite.Spec.Image,
+							},
+						},
+					},
+				},
+			},
+		},
 		&v1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      composite.GetName(),
@@ -23,9 +72,10 @@ func GetChildren(composite v1alpha1.Composite) []client.Object {
 				Kind:       "Service",
 			},
 			Spec: v1.ServiceSpec{
+				Selector: podLabels,
 				Ports: []v1.ServicePort{
 					{
-						Name: "web",
+						Name: portName,
 						Port: 80,
 						TargetPort: intstr.IntOrString{
 							Type:   intstr.Int,
@@ -35,24 +85,47 @@ func GetChildren(composite v1alpha1.Composite) []client.Object {
 				},
 			},
 		},
-		&v1.Pod{
+		&networkingv1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      composite.GetName(),
 				Namespace: composite.GetNamespace(),
-				Labels:    appLabels,
 			},
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: "v1",
-				Kind:       "Pod",
+				APIVersion: "networking.k8s.io/v1",
+				Kind:       "Ingress",
 			},
-			Spec: v1.PodSpec{
-				Containers: []v1.Container{
+			Spec: networkingv1.IngressSpec{
+				Rules: []networkingv1.IngressRule{
 					{
-						Name:  "nginx",
-						Image: "nginx",
+						Host: fmt.Sprintf("%s.kind.local", composite.GetName()),
+						IngressRuleValue: networkingv1.IngressRuleValue{
+							HTTP: &networkingv1.HTTPIngressRuleValue{
+								Paths: []networkingv1.HTTPIngressPath{
+									{
+										Path:     "/",
+										PathType: &ingressPathType,
+										Backend: networkingv1.IngressBackend{
+											Service: &networkingv1.IngressServiceBackend{
+												Name: composite.GetName(),
+												Port: networkingv1.ServiceBackendPort{
+													Name: portName,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			},
 		},
+	}
+}
+
+func (m Mapper) GetStatus(composite v1alpha1.Composite) v1alpha1.CompositeStatus {
+	return v1alpha1.CompositeStatus{
+		ManagedTypes:   len(m.GetTypes()),
+		ManagedObjects: len(m.GetComponents(composite)),
 	}
 }

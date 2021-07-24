@@ -39,10 +39,20 @@ spec:
             type: object
           status:
             description: CompositeStatus defines the observed state of Composite. It should always be reconstructable from the state of the cluster and/or outside world.
+            properties:
+              managedObjects:
+                type: integer
+              managedTypes:
+                type: integer
+            required:
+            - managedObjects
+            - managedTypes
             type: object
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}
 status:
   acceptedNames:
     kind: ""

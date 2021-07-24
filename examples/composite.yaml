@@ -4,4 +4,5 @@ metadata:
   name: pod-service
   namespace: default
 spec:
+#  image: yeasy/simple-web
   image: nginx
