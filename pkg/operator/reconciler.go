@@ -50,13 +50,54 @@ func (r *reconciler) Reconcile(ctx context.Context, request reconcile.Request) (
 	return reconcile.Result{}, nil
 }
 
-func (r *reconciler) reconcileComponents(composite v1alpha1.Composite, components []client.Object) error {
-	for _, c := range components {
+func (r *reconciler) reconcileComponents(composite v1alpha1.Composite, desiredComponents []client.Object) error {
+	observedComponents, err := r.getObservedComponents(composite)
+	if err != nil {
+		return err
+	}
+
+	for _, observed := range observedComponents {
+		found := false
+		for _, desired := range desiredComponents {
+			equalGVK := desired.GetObjectKind().GroupVersionKind() == observed.GetObjectKind().GroupVersionKind()
+			equalName := desired.GetName() == observed.GetName() && desired.GetNamespace() == observed.GetNamespace()
+			if equalGVK && equalName {
+				found = true
+			}
+		}
+
+		if !found {
+			if err := r.k8sClient.Delete(context.Background(), observed); err != nil {
+				return err
+			}
+		}
+	}
+
+	for _, c := range desiredComponents {
 		if err := r.reconcileComponent(composite, c); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (r *reconciler) getObservedComponents(composite v1alpha1.Composite) ([]client.Object, error) {
+	var components []client.Object
+	owner := getOwnerReference(composite)
+	for _, t := range r.mapper.GetTypes() {
+		currentList := unstructured.UnstructuredList{}
+		currentList.SetGroupVersionKind(t.GetObjectKind().GroupVersionKind())
+		if err := r.k8sClient.List(context.Background(), &currentList); err != nil {
+			return nil, err
+		}
+		for _, item := range currentList.Items {
+			item := item
+			if isManagedBy(&item, owner) {
+				components = append(components, &item)
+			}
+		}
+	}
+	return components, nil
 }
 
 func (r *reconciler) reconcileComponent(composite v1alpha1.Composite, c client.Object) error {

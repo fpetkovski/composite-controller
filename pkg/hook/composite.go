@@ -17,9 +17,24 @@ type Mapper struct {
 
 func (m Mapper) GetTypes() []client.Object {
 	return []client.Object{
-		&v1.Service{},
-		&appsv1.Deployment{},
-		&networkingv1.Ingress{},
+		&appsv1.Deployment{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "apps/v1",
+				Kind: "Deployment",
+			},
+		},
+		&v1.Service{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "v1",
+				Kind: "Service",
+			},
+		},
+		&networkingv1.Ingress{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "networking.k8s.io/v1",
+				Kind: "Ingress",
+			},
+		},
 	}
 }
 
