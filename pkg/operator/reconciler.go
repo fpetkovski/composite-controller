@@ -56,21 +56,8 @@ func (r *reconciler) reconcileComponents(composite v1alpha1.Composite, desiredCo
 		return err
 	}
 
-	for _, observed := range observedComponents {
-		found := false
-		for _, desired := range desiredComponents {
-			equalGVK := desired.GetObjectKind().GroupVersionKind() == observed.GetObjectKind().GroupVersionKind()
-			equalName := desired.GetName() == observed.GetName() && desired.GetNamespace() == observed.GetNamespace()
-			if equalGVK && equalName {
-				found = true
-			}
-		}
-
-		if !found {
-			if err := r.k8sClient.Delete(context.Background(), observed); err != nil {
-				return err
-			}
-		}
+	if err := r.deleteObsoleteComponents(observedComponents, desiredComponents); err != nil {
+		return err
 	}
 
 	for _, c := range desiredComponents {
@@ -79,6 +66,32 @@ func (r *reconciler) reconcileComponents(composite v1alpha1.Composite, desiredCo
 		}
 	}
 	return nil
+}
+
+func (r *reconciler) deleteObsoleteComponents(observedComponents []client.Object, desiredComponents []client.Object) error {
+	for _, observed := range observedComponents {
+		found := false
+		found = findComponent(observed, desiredComponents)
+		if found {
+			continue
+		}
+
+		if err := r.k8sClient.Delete(context.Background(), observed); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func findComponent(observed client.Object, desiredComponents []client.Object) bool {
+	for _, desired := range desiredComponents {
+		equalGVK := desired.GetObjectKind().GroupVersionKind() == observed.GetObjectKind().GroupVersionKind()
+		equalName := desired.GetName() == observed.GetName() && desired.GetNamespace() == observed.GetNamespace()
+		if equalGVK && equalName {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *reconciler) getObservedComponents(composite v1alpha1.Composite) ([]client.Object, error) {

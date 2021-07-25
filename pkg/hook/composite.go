@@ -20,19 +20,19 @@ func (m Mapper) GetTypes() []client.Object {
 		&appsv1.Deployment{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "apps/v1",
-				Kind: "Deployment",
+				Kind:       "Deployment",
 			},
 		},
 		&v1.Service{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "v1",
-				Kind: "Service",
+				Kind:       "Service",
 			},
 		},
 		&networkingv1.Ingress{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "networking.k8s.io/v1",
-				Kind: "Ingress",
+				Kind:       "Ingress",
 			},
 		},
 	}
