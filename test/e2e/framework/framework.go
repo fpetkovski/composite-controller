@@ -2,13 +2,14 @@ package framework
 
 import (
 	"context"
+	"log"
+	"sync"
+
 	"github.com/fpetkovski/composite-controller/pkg/hook"
 	"github.com/fpetkovski/composite-controller/pkg/operator"
 	"k8s.io/klog/v2/klogr"
-	"log"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sync"
 )
 
 type Framework struct {
@@ -30,8 +31,7 @@ func (f *Framework) StartOperator() {
 	f.cancel = cancel
 	f.wg.Add(1)
 	go func() {
-		if err := f.Operator.Start(ctx)
-			err != nil {
+		if err := f.Operator.Start(ctx); err != nil {
 			log.Fatal(err)
 		}
 		f.wg.Done()

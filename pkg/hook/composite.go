@@ -38,7 +38,12 @@ func (m Mapper) GetTypes() []client.Object {
 	}
 }
 
-func (m Mapper) GetComponents(composite v1alpha1.Composite) []client.Object {
+func (m Mapper) GetComponents(object client.Object, observed []client.Object) ([]client.Object, error) {
+	composite, ok := object.(*v1alpha1.Composite)
+	if !ok {
+		return nil, fmt.Errorf("object is not of type v1alpha1.Composite")
+	}
+
 	ingressPathType := networkingv1.PathTypePrefix
 	portName := "web"
 	podLabels := map[string]string{
@@ -135,12 +140,17 @@ func (m Mapper) GetComponents(composite v1alpha1.Composite) []client.Object {
 				},
 			},
 		},
-	}
+	}, nil
 }
 
-func (m Mapper) GetStatus(composite v1alpha1.Composite) v1alpha1.CompositeStatus {
+func (m Mapper) GetStatus(object client.Object, observedComponents []client.Object) (v1alpha1.CompositeStatus, error) {
+	objects, err := m.GetComponents(object, observedComponents)
+	if err != nil {
+		return v1alpha1.CompositeStatus{}, err
+	}
+
 	return v1alpha1.CompositeStatus{
 		ManagedTypes:   len(m.GetTypes()),
-		ManagedObjects: len(m.GetComponents(composite)),
-	}
+		ManagedObjects: len(objects),
+	}, nil
 }

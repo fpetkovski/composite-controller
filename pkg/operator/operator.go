@@ -14,8 +14,8 @@ import (
 
 type CompositeMapper interface {
 	GetTypes() []client.Object
-	GetComponents(composite v1alpha1.Composite) []client.Object
-	GetStatus(composite v1alpha1.Composite) v1alpha1.CompositeStatus
+	GetComponents(object client.Object, observed []client.Object) ([]client.Object, error)
+	GetStatus(object client.Object, observed []client.Object) (v1alpha1.CompositeStatus, error)
 }
 
 func New(cfg *rest.Config, logger logr.Logger, mapper CompositeMapper) (manager.Manager, error) {
@@ -37,6 +37,9 @@ func New(cfg *rest.Config, logger logr.Logger, mapper CompositeMapper) (manager.
 			k8sClient: mgr.GetClient(),
 			logger:    ctrlLogger,
 			mapper:    mapper,
+			resourceManager: resourceManager{
+				k8sClient: mgr.GetClient(),
+			},
 		},
 		Log: logger,
 	})

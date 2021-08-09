@@ -11,3 +11,7 @@ kind-cluster:
 .PHONY: format
 format:
 	goimports -l -w .
+
+.PHONY: test-e2e
+test-e2e:
+	go test ./test/e2e/... -v
